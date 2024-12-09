@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scatterplot Graph</title>
+  
+  <!-- D3 Library -->
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  
+  <!-- freeCodeCamp Test Script -->
+  <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+  
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #chart {
+      display: inline-block;
+    }
+    .dot {
+      fill: steelblue;
+    }
+    .dot:hover {
+      fill: orange;
+    }
+    #tooltip {
+      position: absolute;
+      background-color: lightgray;
+      padding: 8px;
+      border: 1px solid black;
+      opacity: 0;
+      pointer-events: none;
+      font-size: 14px;
+    }
+    #legend {
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Title -->
+  <h1 id="title">Scatter Plot Graph of Cycling Data</h1>
+  
+  <!-- Chart Container -->
+  <div id="chart"></div>
+
+  <!-- Tooltip -->
+  <div id="tooltip" data-year=""></div>
+  
+  <script>
+    // Dataset URL
+    const url = "https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/cyclist-data.json";
+
+    // Chart dimensions
+    const width = 800;
+    const height = 400;
+    const padding = 60;
+
+    // Fetch the data
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        createChart(data);
+      })
+      .catch(err => console.log(err));
+
+    function createChart(data) {
+      // Format y-axis time values
+      const parseTime = d3.timeParse("%M:%S");
+      const formatTime = d3.timeFormat("%M:%S");
+
+      // SVG container
+      const svg = d3.select("#chart")
+        .append("svg")
+        .attr("width", width + padding * 2)
+        .attr("height", height + padding * 2);
+
+      // Scales
+      const xScale = d3.scaleTime()
+        .domain([d3.min(data, d => new Date(d.Year, 0)), d3.max(data, d => new Date(d.Year, 0))])
+        .range([padding, width + padding]);
+
+      const yScale = d3.scaleTime()
+        .domain(d3.extent(data, d => parseTime(d.Time)))
+        .range([padding, height + padding]);
+
+      // Axes
+      const xAxis = d3.axisBottom(xScale).tickFormat(d3.format("d"));
+      const yAxis = d3.axisLeft(yScale).tickFormat(formatTime);
+
+      svg.append("g")
+        .attr("id", "x-axis")
+        .attr("transform", `translate(0, ${height + padding})`)
+        .call(xAxis);
+
+      svg.append("g")
+        .attr("id", "y-axis")
+        .attr("transform", `translate(${padding}, 0)`)
+        .call(yAxis);
+
+      // Tooltip
+      const tooltip = d3.select("#tooltip");
+
+      // Dots
+      svg.selectAll(".dot")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("class", "dot")
+        .attr("cx", d => xScale(new Date(d.Year, 0)))
+        .attr("cy", d => yScale(parseTime(d.Time)))
+        .attr("r", 6)
+        .attr("data-xvalue", d => d.Year)
+        .attr("data-yvalue", d => parseTime(d.Time))
+        .style("fill", d => d.Doping ? "red" : "blue")
+        .on("mouseover", (event, d) => {
+          tooltip.style("opacity", 0.9)
+            .attr("data-year", d.Year)
+            .html(`
+              ${d.Name}: ${d.Nationality}<br>
+              Year: ${d.Year}, Time: ${d.Time}<br>
+              ${d.Doping ? "Doping: " + d.Doping : "No Doping Allegations"}
+            `)
+            .style("left", `${event.pageX + 10}px`)
+            .style("top", `${event.pageY - 30}px`);
+        })
+        .on("mouseout", () => {
+          tooltip.style("opacity", 0);
+        });
+
+      // Legend
+      const legend = svg.append("g").attr("id", "legend");
+
+      legend.append("rect")
+        .attr("x", width - 100)
+        .attr("y", 30)
+        .attr("width", 15)
+        .attr("height", 15)
+        .style("fill", "blue");
+      
+      legend.append("text")
+        .attr("x", width - 80)
+        .attr("y", 42)
+        .text("No Doping Allegations");
+
+      legend.append("rect")
+        .attr("x", width - 100)
+        .attr("y", 50)
+        .attr("width", 15)
+        .attr("height", 15)
+        .style("fill", "red");
+
+      legend.append("text")
+        .attr("x", width - 80)
+        .attr("y", 62)
+        .text("Doping Allegations");
+    }
+  </script>
+</body>
+</html>
